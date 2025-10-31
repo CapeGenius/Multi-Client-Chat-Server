@@ -7,16 +7,22 @@
 #include <unistd.h>
 
 int main() {
-
-    int servSockD = socket(AF_INET, SOCK_STREAM, 0);
+    int reuse = 1;
+    int listener_d = socket(AF_INET, SOCK_STREAM, 0);
+    char* msg = "Hello! I'm hungry.";
 
     // checking if the file descriptor is created
-    if (servSockD < 0){
+    if (listener_d < 0){
         perror("Socket initialization failed \n");
         exit(1);
     }
 
     printf("Socket created");
+
+    if (setsockopt(listener_d, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(int)) == -1)
+    {
+        perror("Can't set the reuse option on the socket");
+    }
 
     // declaring a struct for the IP address
     struct sockaddr_in servAddr;
@@ -25,7 +31,7 @@ int main() {
     servAddr.sin_addr.s_addr = INADDR_ANY;
 
     // ensuring that the socket binds to port
-    if (bind(servSockD, (struct sockaddr_in*)&servAddr, sizeof(servAddr)) < 0) {
+    if (bind(listener_d, (struct sockaddr_in*)&servAddr, sizeof(servAddr)) < 0) {
         perror("Failed to bind to port");
         exit(1);
     }
@@ -33,28 +39,23 @@ int main() {
     printf("Socket bound to port");
 
     //ensure that socket listens to new connections
-    if (listen(servSockD, 1) < 0) {
+    if (listen(listener_d, 1) < 0) {
         perror("Couldn't listen on socket");
     }
 
     printf("Socket listening on port");
 
-    int clientSocket = accept(servSockD, NULL, NULL);
+    int clientSocket = accept(listener_d, NULL, NULL);
     if (clientSocket < 0) {
         perror("Client Connection Faileed");
         exit(1);
     }
 
     printf("Client connected to server");
-
-    //create a buffer from client
-    char buffer[1024] = {0};
-    recv(clientSocket, buffer, sizeof(buffer), 0);
-
-    printf("Message from client: %s\n", buffer);
+    send(clientSocket, msg, strlen(msg), 0);
 
     close(clientSocket);
-    close(servSockD);
+    close(listener_d);
 
     return 0;
 
