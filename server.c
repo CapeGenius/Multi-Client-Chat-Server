@@ -75,14 +75,10 @@ int main() {
 }
 
 int send_info(int socket, char* msg){
-    // dereferences client socket and sends message to socket
-    char new_line[] = "\n";
-    char server_msg[] = "Server:";
+    char final_msg[BUFFER_SIZE + 20];  // fixed code to avoid messing with string literals
+    snprintf(final_msg, sizeof(final_msg), "Server: %s\n", msg);
 
-    char* temp_msg = strcat(msg, new_line);
-    char* final_msg = strcat(server_msg, temp_msg);
-
-    int success = send(socket, final_msg, strlen(msg), 0);
+    int success = send(socket, final_msg, strlen(final_msg), 0);
     if (success == -1) {
         perror("Send failed");
     }
@@ -91,23 +87,29 @@ int send_info(int socket, char* msg){
 }
 
 int read_info(int socket, char *buf, int len){
-    char *s = buf;
-    int slen = len;
-    int c = recv(socket, s, slen, 0);
+    int total = 0;
+    while (total < len - 1) { //iterates through a string to receive all the bytes
+        int c = recv(socket, buf + total, len - 1 - total, 0);
+        if (c <= 0) {
+            buf[total] = '\0';
+            return c;
+        }
 
-    while ((c > 0) && (s[c-1] != '\n')) {
-        s += c; slen -= c;
-        c = recv(socket, s, slen, 0);
+        total += c;
+
+        // Stop when we hit newline
+        if (buf[total - 1] == '\n')
+            break;
     }
-    if (c < 0)
-        return c;
-    else if (c == 0) {
-        buf[0] = '\0';
-        return 0;
-    }
-    else
-        s[c -1] = '\0';
-    return len - slen;
+
+    buf[total] = '\0'; // ending terminal of string
+    // makes sure to replace the \n or \r with \0
+    if (total > 0 && buf[total - 1] == '\n')
+        buf[total - 1] = '\0';
+    if (total > 1 && buf[total - 2] == '\r')
+        buf[total - 2] = '\0';
+
+    return total;
 }
 
 void client_handling(int clientSocket) {
@@ -117,6 +119,7 @@ void client_handling(int clientSocket) {
 
         if (strcmp(buffer, "exit") == 0) {
             printf("Client requested exit.\n");
+            shutdown(clientSocket, SHUT_RDWR); //uses client shutdown to shut down socket
             break;
         }
 
