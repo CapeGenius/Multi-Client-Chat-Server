@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
-#include <server_setup.h>
+#include "server_setup.h"
 #define BUFFER_SIZE 1024
 
 // listening socket function
@@ -82,6 +82,7 @@ void* client_handling(void* client_socket_ptr) {
     }
 
     close(clientSocket);
+    return NULL;
 }
 
 // functions for sending and receiving info
@@ -96,7 +97,6 @@ int send_info(int socket, char* msg){
     }
 
     return success;
-    return NULL;
 }
 
 int read_info(int socket, char *buf, int len){
