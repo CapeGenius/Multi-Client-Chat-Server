@@ -1,0 +1,52 @@
+# Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+*.bin
+
+# Libraries
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Debugging information
+*.dSYM/
+*.pdb
+
+# IDE specific files (examples for common IDEs)
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.ncb
+*.aps
+*.ilk
+*.ipch
+*.log
+*.tlog
+*.VC.db
+*.VC.opendb
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# VS Code
+.vscode/
+
+# Build directories
+build/
+bin/
+obj/
+
+# Other temporary or generated files
+*~
+*.bak
+*.swp
+*.tmp
