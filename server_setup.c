@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <server_setup.h>
 #define BUFFER_SIZE 1024
 
 // listening socket function
@@ -43,21 +44,28 @@ int setup_listener(int port, int backlog) {
 }
 
 // function for client handling for connected sockets --> will be used as a thread
-void* accept_connections(void* listener_socket_ptr) {    
-    int listener_socket = *(int*)listener_socket_ptr;
+void accept_connections(int listener_socket) {    
 
     while (1){
-        int clientSocket = accept(listener_socket, NULL, NULL);
-    }
+        int client_socket = accept(listener_socket, NULL, NULL);
+        if (client_socket < 0) {
+            perror("Error accepting client");
+            exit(1);
+        }
 
-    pthread_t thread;
-    pthread_create(&thread, NULL, (void*)client_handling, (void*)(intptr_t)client_fd);
-    pthread_detach(thread);
+        int* client_socket_ptr = malloc(sizeof(int));
+        *client_socket_ptr = client_socket;
+
+        pthread_t thread;
+        pthread_create(&thread, NULL, (void*)client_handling, (void*)client_socket_ptr);
+        pthread_detach(thread);
+    }    
 
 }
 
 void* client_handling(void* client_socket_ptr) {
     int clientSocket = *(int*)client_socket_ptr;
+    free(client_socket_ptr);
     
     char buffer[BUFFER_SIZE]; 
     while(1) {
@@ -88,6 +96,7 @@ int send_info(int socket, char* msg){
     }
 
     return success;
+    return NULL;
 }
 
 int read_info(int socket, char *buf, int len){
