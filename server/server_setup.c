@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include "server_setup.h"
+#include "logger.h"
 #define BUFFER_SIZE 1024
 
 // listening socket function
@@ -70,7 +71,9 @@ void* client_handling(void* client_socket_ptr) {
     char buffer[BUFFER_SIZE]; 
     while(1) {
         int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
-
+        if (byte_count > 0) {
+            log_message("client", buffer);
+        }
         if (strcmp(buffer, "exit") == 0) {
             printf("Client requested exit.\n");
             shutdown(clientSocket, SHUT_RDWR); //uses client shutdown to shut down socket

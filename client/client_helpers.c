@@ -1,5 +1,5 @@
 #include <sys/socket.h>   
-#include <netinet/in.h>   
+#include <netinet/in.h> // gives us definitions and type declarations that describe how internet networking sockets work 
 #include <arpa/inet.h>    
 #include <pthread.h>      
 #include <stdio.h>        
@@ -164,9 +164,9 @@ int connect_client(char* host, int* port){
     printf("Socket created \n");
 
     struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));  // important!
+    memset(&server_addr, 0, sizeof(server_addr));  // important!...zeros out our struct
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(*port);
+    server_addr.sin_port = htons(*port); // stores the port number in network byte order
 
     // Convert string IP to binary form
     if (inet_pton(AF_INET, host, &server_addr.sin_addr) <= 0) {
