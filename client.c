@@ -1,4 +1,4 @@
-#include "server_setup.h"
+#include "client_helpers.h"
 #include <stdio.h>
 
 int main() {
@@ -22,7 +22,7 @@ void prompt_ip(char* buffer, size_t size) {
 int prompt_port() {
     int port;
     puts("Type Port:");
-    scanf("%d", port);
+    scanf("%d", &port);
 
     return port;
 }
