@@ -8,7 +8,14 @@ int main() {
 
     int client_socket = connect_client(ip, &port);
 
-    close(client_socket);
+    pthread_t receive_thread;
+    pthread_t send_thread; 
+
+    pthread_create(&receive_thread, NULL, (void*)read_message, (void*) &client_socket);
+    pthread_create(&send_thread, NULL, (void*)send_message, (void*) &client_socket);
+    pthread_join(receive_thread, NULL);
+    pthread_join(send_thread, NULL);
+
 
     return 0;
 }
@@ -24,5 +31,5 @@ int prompt_port() {
     puts("Type Port:");
     scanf("%d", &port);
 
-    return port;
+    return port; 
 }
