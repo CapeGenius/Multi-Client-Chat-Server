@@ -178,4 +178,6 @@ int connect_client(char* host, int* port){
     }
 
     printf("Connected to %s:%d\n", host, port);
+
+    return client_socket;
 }
