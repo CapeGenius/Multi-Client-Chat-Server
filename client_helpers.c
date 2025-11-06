@@ -162,7 +162,7 @@ int connect_client(char* host, int* port){
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));  // important!
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
+    server_addr.sin_port = htons(*port);
 
     // Convert string IP to binary form
     if (inet_pton(AF_INET, host, &server_addr.sin_addr) <= 0) {
@@ -176,8 +176,6 @@ int connect_client(char* host, int* port){
         close(client_socket);
         return -1;
     }
-
-    printf("Connected to %s:%d\n", host, port);
 
     return client_socket;
 }
