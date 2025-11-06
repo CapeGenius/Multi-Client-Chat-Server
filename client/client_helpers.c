@@ -66,7 +66,7 @@ void* send_message(void* client_socket_ptr) {
     // message is dynamically allocated using malloc underneath the hood of getline, so we must free it
     free(message);
     // we close the client socket if our user pressed Ctrl+D
-    close(client_socket);
+    shutdown(client_socket, SHUT_WR);
     // Either the user has ended the client communication with the server
     // or send() failed
     printf("Disconnected from server or user exited input.\n");
@@ -93,6 +93,8 @@ void* read_message(void* client_socket_ptr) {
     uint32_t net_len;
     // we use this to track how many bytes we've accumulated
     size_t total_received;
+
+    printf("Read message started!");
     // loop to continuously receive messages
     while (1) {
         // STEP 1: Recieve the 4 byte length prefix
@@ -148,7 +150,7 @@ void* read_message(void* client_socket_ptr) {
     // disconnect logic
     disconnect:
         printf("\nDisconnected from server or error occured while reading.\n");
-        close(client_socket);
+        shutdown(client_socket, SHUT_RD);
         return NULL;
 }
 
@@ -158,6 +160,8 @@ int connect_client(char* host, int* port){
     if (client_socket < 0) {
         perror("Socket creation failed");
     }
+
+    printf("Socket created \n");
 
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));  // important!
@@ -171,11 +175,15 @@ int connect_client(char* host, int* port){
         return -1;
     }
 
+    printf("IP Address reached. \n");
+
     if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("Connection failed");
         close(client_socket);
         return -1;
     }
+
+    printf("Connection successful! \n");
 
     return client_socket;
 }
