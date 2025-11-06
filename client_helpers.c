@@ -152,3 +152,30 @@ void* read_message(void* client_socket_ptr) {
         return NULL;
 }
 
+int connect_client(char* host, int* port){
+    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (client_socket < 0) {
+        perror("Socket creation failed");
+    }
+
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));  // important!
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+
+    // Convert string IP to binary form
+    if (inet_pton(AF_INET, host, &server_addr.sin_addr) <= 0) {
+        perror("Address does not exist");
+        close(client_socket);
+        return -1;
+    }
+
+    if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("Connection failed");
+        close(client_socket);
+        return -1;
+    }
+
+    printf("Connected to %s:%d\n", host, port);
+}
