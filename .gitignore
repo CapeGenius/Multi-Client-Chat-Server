@@ -50,3 +50,6 @@ obj/
 *.bak
 *.swp
 *.tmp
+
+server
+server_log.csv
