@@ -94,7 +94,7 @@ void* read_message(void* client_socket_ptr) {
     // we use this to track how many bytes we've accumulated
     size_t total_received;
 
-    printf("Read message started!");
+    printf("Read message started! \n");
     // loop to continuously receive messages
     while (1) {
         // STEP 1: Recieve the 4 byte length prefix
