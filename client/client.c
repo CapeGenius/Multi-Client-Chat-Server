@@ -14,7 +14,7 @@ int main() {
     pthread_create(&receive_thread, NULL, (void*)read_message, (void*) &client_socket);
     pthread_create(&send_thread, NULL, (void*)send_message, (void*) &client_socket);
     pthread_join(receive_thread, NULL);
-    pthread_join(send_thread, NULL);    
+    pthread_join(send_thread, NULL);
 
 
     return 0;
@@ -31,5 +31,5 @@ int prompt_port() {
     puts("Type Port:");
     scanf("%d", &port);
 
-    return port;
+    return port; 
 }
