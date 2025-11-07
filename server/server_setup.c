@@ -11,6 +11,8 @@
 #include "logger.h"
 #define BUFFER_SIZE 1024
 
+// declare a poll or buffer that holds all message being sent --> send back message through every single socket
+
 // listening socket function
 int setup_listener(int port, int backlog) {
     int reuse = 1;

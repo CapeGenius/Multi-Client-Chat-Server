@@ -8,6 +8,10 @@
 #include <unistd.h>
 #include <time.h> 
 
+/*fixes: we want client to work in a way --> when we type exit, it exits the client socket connection -- 
+and ensures other clients can still send --> Crtl + C should not exit for all connections 
+*/ 
+
 #define MAX_MESSAGE_SIZE (1024 * 1024) // define a max message size for our terminal input 1MB
 
 /**
