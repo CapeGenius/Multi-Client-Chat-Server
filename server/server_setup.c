@@ -11,7 +11,20 @@
 #include "logger.h"
 #define BUFFER_SIZE 1024
 
-// declare a poll or buffer that holds all message being sent --> send back message through every single socket
+//declare new struct type for incoming messages
+typedef struct {
+    char* msg_ptr; // 
+    int socket_flag; // defines read (0), write (1) 
+    int client_count; // how many clients have sent the message
+} message;
+
+// declare mutex locks and global variables to control the client count
+int client_count = 0;
+pthread_mutex_t client_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t message_lock = PTHREAD_MUTEX_INITIALIZER; 
+
+//declare current message as a form of new message type
+message current_msg = { .msg_ptr = NULL, .socket_flag = 0, .client_count = 0 };
 
 // listening socket function
 int setup_listener(int port, int backlog) {
@@ -21,6 +34,8 @@ int setup_listener(int port, int backlog) {
         perror("Socket initialization failed");
         exit(1);
     }
+
+    current_msg.msg_ptr = malloc(1);
 
     // ensures socket is reused
     setsockopt(listener_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
@@ -56,20 +71,46 @@ void accept_connections(int listener_socket) {
             exit(1);
         }
 
+        increment_client_count(); // uses locks to increment / decrement client count
+
         int* client_socket_ptr = malloc(sizeof(int));
         *client_socket_ptr = client_socket;
 
-        pthread_t thread;
-        pthread_create(&thread, NULL, (void*)client_handling, (void*)client_socket_ptr);
-        pthread_detach(thread);
+        pthread_t read_thread;
+        pthread_t write_thread;
+        pthread_create(&read_thread, NULL, (void*)read_handling, (void*)client_socket_ptr);
+        pthread_create(&write_thread, NULL, (void*)write_handling, (void*)client_socket_ptr);
+        pthread_detach(read_thread);
     }    
 
 }
 
-void* client_handling(void* client_socket_ptr) {
+// thread to send message when the message is in the write phase
+void* write_handling(void* client_socket_ptr) {
+    int client_socket = *(int*) client_socket_ptr;
+    while (1) {
+        printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
+        if (current_msg.client_count <= client_count && current_msg.socket_flag == 1){
+            write_message(client_socket);
+        }
+        else if (current_msg.client_count == client_count)
+        {
+            reset_flag();
+        }
+        else {
+            continue;
+        }
+    }
+}
+
+
+// thread to read message when the message is in read phase
+void* read_handling(void* client_socket_ptr) {
+
+    //dereferences pointer
     int clientSocket = *(int*)client_socket_ptr;
-    free(client_socket_ptr);
     
+    // creates string and sends message
     char buffer[BUFFER_SIZE]; 
     while(1) {
         int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
@@ -78,22 +119,75 @@ void* client_handling(void* client_socket_ptr) {
         }
         if (strcmp(buffer, "exit") == 0) {
             printf("Client requested exit.\n");
+            decrement_client_count();
             shutdown(clientSocket, SHUT_RDWR); //uses client shutdown to shut down socket
             break;
         }
 
-        send_info(clientSocket, buffer);
-        
+        //in read phase, message type will receive a new message
+        if (current_msg.socket_flag == 0){
+            printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
+            reset_message(buffer);
+        }
+
     }
 
     close(clientSocket);
+    free(client_socket_ptr);
     return NULL;
 }
 
+
+// mutex functions for changing client count
+void increment_client_count() {
+    pthread_mutex_lock(&client_lock);
+    client_count++;
+    pthread_mutex_unlock(&client_lock);
+}
+
+void decrement_client_count() {
+    pthread_mutex_lock(&client_lock);
+    client_count--;
+    pthread_mutex_unlock(&client_lock);
+}
+
+//resets message before every new read
+void reset_message(char* buffer) {
+    // create heap copy of buffer 
+    char* heap_copy = (char*) malloc(BUFFER_SIZE+1);
+    strcpy(heap_copy, buffer);
+
+    //assign heap copy to the buffer
+    pthread_mutex_lock(&client_lock);
+    free(current_msg.msg_ptr);
+    current_msg.msg_ptr =  heap_copy;
+    current_msg.socket_flag = 1;
+    current_msg.client_count = 0;
+    pthread_mutex_unlock(&client_lock);
+}
+
+// sends messages to client
+void write_message(int client_socket) {
+    pthread_mutex_lock(&client_lock);
+    current_msg.client_count++;
+    send_info(client_socket, current_msg.msg_ptr);
+    pthread_mutex_unlock(&client_lock);
+}
+
+//reset flag
+void reset_flag() {
+    pthread_mutex_lock(&client_lock);
+    current_msg.socket_flag = 0;
+    current_msg.client_count = 0;
+    pthread_mutex_unlock(&client_lock);
+}
+
+// read and write functions
+
 // reimplemented send_info to follow client side 4byte prefix profile
 int send_info(int socket, char* msg){
-    char final_msg[BUFFER_SIZE + 20]; 
-    int final_msg_len = snprintf(final_msg, sizeof(final_msg), "Server: %s", msg); 
+    char final_msg[BUFFER_SIZE + 1 + 20]; 
+    int final_msg_len = snprintf(final_msg, sizeof(final_msg), msg); 
 
     //ensures that the message is not empty / doesn't exist final message size
     if (final_msg_len < 0 || final_msg_len >= sizeof(final_msg)) {
@@ -104,6 +198,8 @@ int send_info(int socket, char* msg){
     // create 4-byte length prefix for message
     uint32_t msg_len = (uint32_t)final_msg_len;
     uint32_t net_len = htonl(msg_len);
+
+    printf("Sending on socket: %d\n", socket);
 
     // send 4 byte prefix
     int sent_len = send(socket, &net_len, sizeof(net_len), 0);
@@ -139,7 +235,8 @@ int read_info(int socket, char *buf, int len){
         if (bytes_received <= 0) {
             // Client closed connection or error
             if (total_received > 0) {
-                 fprintf(stderr, "Partial length prefix received. Disconnecting.\n");
+                decrement_client_count();
+                fprintf(stderr, "Partial length prefix received. Disconnecting.\n");
             }
             return bytes_received; // 0 for clean close, -1 for error
         }
@@ -164,6 +261,7 @@ int read_info(int socket, char *buf, int len){
         
         if (bytes_received <= 0) {
             // Client disconnected while sending body or error
+            decrement_client_count();
             fprintf(stderr, "Client disconnected during message body transfer.\n");
             return bytes_received;
         }
@@ -175,3 +273,5 @@ int read_info(int socket, char *buf, int len){
 
     return (int)msg_len;
 }
+
+
