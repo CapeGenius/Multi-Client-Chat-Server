@@ -113,28 +113,25 @@ void* read_handling(void* client_socket_ptr) {
     // creates string and sends message
     char buffer[BUFFER_SIZE]; 
     while(1) {
-        int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
-        if (byte_count > 0) {
-            log_message("client", buffer);
-        }
-        if (strcmp(buffer, "exit") == 0) {
-            printf("Client requested exit.\n");
-            decrement_client_count();
-            shutdown(clientSocket, SHUT_RDWR); //uses client shutdown to shut down socket
-            break;
-        }
-
-        //in read phase, message type will receive a new message
-        if (current_msg.socket_flag == 0){
-            printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
-            reset_message(buffer);
-        }
-
+    int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
+    // Case 1: Client disconnected or error
+    if (byte_count <= 0) {
+        printf("Client disconnected or error occurred.\n");
+        break;  // Stop this thread safely
     }
-
+    // Case 2: Client typed "exit"
+    if (strcmp(buffer, "exit") == 0) {
+        printf("Client requested exit.\n");
+        break;  // Graceful shutdown
+    }
+    // Case 3: Normal message
+    log_message("client", buffer);
+    send_info(clientSocket, buffer);
+    // close the individual socket connection
     close(clientSocket);
     free(client_socket_ptr);
     return NULL;
+    }
 }
 
 

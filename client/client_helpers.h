@@ -10,5 +10,8 @@
 void* send_message(void* client_socket_ptr);
 void* read_message(void* client_socket_ptr);
 int connect_client(char* host, int* port);
+void handle_sigint(int sig);
+void prompt_ip(char* buffer, size_t size);
+int prompt_port();
 
 #endif // CLIENT_HELPERS_H

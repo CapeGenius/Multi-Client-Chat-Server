@@ -1,7 +1,10 @@
 #include "client_helpers.h"
 #include <stdio.h>
+#include <signal.h> 
+#include <pthread.h>
 
 int main() {
+    signal(SIGINT, handle_sigint);
     char ip[16];
     prompt_ip(ip, sizeof(ip));
     int port = prompt_port();
