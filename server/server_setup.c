@@ -70,22 +70,24 @@ void* client_handling(void* client_socket_ptr) {
     
     char buffer[BUFFER_SIZE]; 
     while(1) {
-        int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
-        if (byte_count > 0) {
-            log_message("client", buffer);
-        }
-        if (strcmp(buffer, "exit") == 0) {
-            printf("Client requested exit.\n");
-            shutdown(clientSocket, SHUT_RDWR); //uses client shutdown to shut down socket
-            break;
-        }
-
-        send_info(clientSocket, buffer);
-        
+    int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
+    // Case 1: Client disconnected or error
+    if (byte_count <= 0) {
+        printf("Client disconnected or error occurred.\n");
+        break;  // Stop this thread safely
     }
-
+    // Case 2: Client typed "exit"
+    if (strcmp(buffer, "exit") == 0) {
+        printf("Client requested exit.\n");
+        break;  // Graceful shutdown
+    }
+    // Case 3: Normal message
+    log_message("client", buffer);
+    send_info(clientSocket, buffer);
+    // close the individual socket connection
     close(clientSocket);
     return NULL;
+    }
 }
 
 // reimplemented send_info to follow client side 4byte prefix profile

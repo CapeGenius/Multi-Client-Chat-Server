@@ -7,8 +7,16 @@
 #include <string.h>       
 #include <unistd.h>
 #include <time.h> 
+#include <signal.h>
 
 #define MAX_MESSAGE_SIZE (1024 * 1024) // define a max message size for our terminal input 1MB
+volatile sig_atomic_t stop_client = 0; // Global flag to stop threads when user presses Ctrl+C
+
+void handle_sigint(int sig){
+    (void)sig; // we void cast to prevent compiler warnings
+    stop_client = 1; // set the stop flag to 1
+    printf("Caught Ctrl+C. Closing client connection.\n");
+}
 
 /**
 Function to send messages to the server. This function...
@@ -27,18 +35,23 @@ void* send_message(void* client_socket_ptr) {
     size_t len = 0; // tracks the allocated buffer size for getline()
     ssize_t read; // will store the number of characters read (-1 EOF)
     // prompt the user for a message
-    printf("Type your message (Ctrl+D to quit): \n"); 
+    printf("Type your message (type 'exit' to quit, or press Ctrl+C): \n"); 
     // while there is a non EOF (end of file) message typed into terminal
-    while ((read = getline(&message, &len, stdin)) != -1) {
+    while (stop_client != 1 && (read = getline(&message, &len, stdin)) != -1 ) {
         // remove trailing newline
         if (read > 0 && message[read - 1] == '\n') {
             message[read - 1] = '\0';
             read--;
         }
-        // if our message is empty, wait for the next message or ctrl d from the user
+        // if our message is empty, wait for the next message
         if (read == 0) {
             continue;
         }
+        // check if the user typed "exit"
+        if (strcmp(message, "exit") == 0) {
+            printf("Exit command received. Closing client connection.\n");
+            break;
+        }   
         // check the max message size
         if (read > MAX_MESSAGE_SIZE) {
             printf("Message too long. Limit is 1MB.\n");
@@ -66,7 +79,8 @@ void* send_message(void* client_socket_ptr) {
     // message is dynamically allocated using malloc underneath the hood of getline, so we must free it
     free(message);
     // we close the client socket if our user pressed Ctrl+D
-    shutdown(client_socket, SHUT_WR);
+    shutdown(client_socket, SHUT_RDWR);
+    close(client_socket);
     // Either the user has ended the client communication with the server
     // or send() failed
     printf("Disconnected from server or user exited input.\n");
@@ -96,7 +110,7 @@ void* read_message(void* client_socket_ptr) {
 
     printf("Read message started! \n");
     // loop to continuously receive messages
-    while (1) {
+    while (stop_client != 1) {
         // STEP 1: Recieve the 4 byte length prefix
         // Loop while the TCP stream hasn't sent 4 bytes, cause we need these 4 bytes
         // to understand how long of a message we are going to need to buffer
@@ -150,7 +164,6 @@ void* read_message(void* client_socket_ptr) {
     // disconnect logic
     disconnect:
         printf("\nDisconnected from server or error occured while reading.\n");
-        shutdown(client_socket, SHUT_RD);
         return NULL;
 }
 
