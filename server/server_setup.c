@@ -90,10 +90,10 @@ void* write_handling(void* client_socket_ptr) {
     int client_socket = *(int*) client_socket_ptr;
     while (1) {
         printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
-        if (current_msg.client_count <= client_count && current_msg.socket_flag == 1){
+        if (current_msg.client_count < client_count && current_msg.socket_flag == 1){
             write_message(client_socket);
         }
-        else if (current_msg.client_count == client_count)
+        else if (current_msg.client_count >= client_count)
         {
             reset_flag();
         }
