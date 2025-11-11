@@ -95,7 +95,7 @@ void accept_connections(int listener_socket) {
 void* write_handling(void* client_socket_ptr) {
     int client_socket = *(int*) client_socket_ptr;
     while (1) {
-        printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
+        // printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
         if (current_msg.client_count < client_count && current_msg.socket_flag == 1){
             write_message(client_socket);
         }
@@ -125,22 +125,25 @@ void* read_handling(void* client_socket_ptr) {
         printf("Client disconnected or error occurred.\n");
         remove_fd(&client_fds, clientSocket);
         print_fd_list(client_fds);
-        break;  // Stop this thread safely
+
+        close(clientSocket);
+        free(client_socket_ptr);
+        return NULL;    
+        // Stop this thread safely
     }
     // Case 2: Client typed "exit"
     if (strcmp(buffer, "exit") == 0) {
         printf("Client requested exit.\n");
         remove_fd(&client_fds, clientSocket);
         print_fd_list(client_fds);
-        break;  // Graceful shutdown
+        close(clientSocket);
+        free(client_socket_ptr);
+        return NULL; // Graceful shutdown   
     }
     // Case 3: Normal message
     log_message("client", buffer);
     send_info(clientSocket, buffer);
     // close the individual socket connection
-    close(clientSocket);
-    free(client_socket_ptr);
-    return NULL;
     }
 }
 
