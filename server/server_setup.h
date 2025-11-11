@@ -17,7 +17,7 @@ void accept_connections(int listener_socket);
 
 // Thread handlers for client connections
 void* read_handling(void* client_socket_ptr);
-void* write_handling(void* client_socket_ptr);
+void* write_handling();
 
 // Mutex helpers for client count
 void increment_client_count(void);
