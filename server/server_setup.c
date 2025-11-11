@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include "server_setup.h"
 #include "logger.h"
+#include "fd_list.h" 
 #define BUFFER_SIZE 1024
 
 //declare new struct type for incoming messages
@@ -17,6 +18,8 @@ typedef struct {
     int socket_flag; // defines read (0), write (1) 
     int client_count; // how many clients have sent the message
 } message;
+
+static fd_node_t *client_fds = NULL; // global list of active client sockets
 
 // declare mutex locks and global variables to control the client count
 int client_count = 0;
@@ -71,6 +74,10 @@ void accept_connections(int listener_socket) {
             exit(1);
         }
 
+        // track the new client socket
+        enqueue_fd(&client_fds, client_socket);
+        print_fd_list(client_fds); // optional debug
+
         increment_client_count(); // uses locks to increment / decrement client count
 
         int* client_socket_ptr = malloc(sizeof(int));
@@ -117,11 +124,15 @@ void* read_handling(void* client_socket_ptr) {
     // Case 1: Client disconnected or error
     if (byte_count <= 0) {
         printf("Client disconnected or error occurred.\n");
+        remove_fd(&client_fds, clientSocket);
+        print_fd_list(client_fds);
         break;  // Stop this thread safely
     }
     // Case 2: Client typed "exit"
     if (strcmp(buffer, "exit") == 0) {
         printf("Client requested exit.\n");
+        remove_fd(&client_fds, clientSocket);
+        print_fd_list(client_fds);
         break;  // Graceful shutdown
     }
     // Case 3: Normal message
@@ -184,7 +195,7 @@ void reset_flag() {
 // reimplemented send_info to follow client side 4byte prefix profile
 int send_info(int socket, char* msg){
     char final_msg[BUFFER_SIZE + 1 + 20]; 
-    int final_msg_len = snprintf(final_msg, sizeof(final_msg), msg); 
+    int final_msg_len = snprintf(final_msg, sizeof(final_msg), "%s", msg);
 
     //ensures that the message is not empty / doesn't exist final message size
     if (final_msg_len < 0 || final_msg_len >= sizeof(final_msg)) {
