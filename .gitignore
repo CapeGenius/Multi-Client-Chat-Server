@@ -51,5 +51,5 @@ obj/
 *.swp
 *.tmp
 
-server
+
 server_log.csv
