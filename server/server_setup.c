@@ -25,6 +25,7 @@ static fd_node_t *client_fds = NULL; // global list of active client sockets
 int client_count = 0;
 pthread_mutex_t client_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t message_lock = PTHREAD_MUTEX_INITIALIZER; 
+pthread_mutex_t fd_lock = PTHREAD_MUTEX_INITIALIZER; 
 
 //declare current message as a form of new message type
 message current_msg = { .msg_ptr = NULL, .socket_flag = 0, .client_count = 0 };
@@ -67,6 +68,10 @@ int setup_listener(int port, int backlog) {
 // function for client handling for connected sockets --> will be used as a thread
 void accept_connections(int listener_socket) {    
 
+    pthread_t write_thread;
+    pthread_create(&write_thread, NULL, (void*)write_handling, NULL);
+    pthread_detach(write_thread);
+
     while (1){
         int client_socket = accept(listener_socket, NULL, NULL);
         if (client_socket < 0) {
@@ -84,27 +89,29 @@ void accept_connections(int listener_socket) {
         *client_socket_ptr = client_socket;
 
         pthread_t read_thread;
-        pthread_t write_thread;
+        
         pthread_create(&read_thread, NULL, (void*)read_handling, (void*)client_socket_ptr);
-        pthread_create(&write_thread, NULL, (void*)write_handling, (void*)client_socket_ptr);
         pthread_detach(read_thread);
     }    
 }
 
 // thread to send message when the message is in the write phase
-void* write_handling(void* client_socket_ptr) {
-    int client_socket = *(int*) client_socket_ptr;
+void* write_handling() {
     while (1) {
         // printf("%d,%d,%s \n",current_msg.client_count,current_msg.socket_flag, current_msg.msg_ptr);
-        if (current_msg.client_count < client_count && current_msg.socket_flag == 1){
-            write_message(client_socket);
-        }
-        else if (current_msg.client_count >= client_count)
-        {
+        if (current_msg.socket_flag == 1){
+            pthread_mutex_lock(&fd_lock);
+            fd_node_t *current_client = client_fds;
+            while (current_client != NULL)
+            {   
+                print_fd_list(client_fds);
+                printf("current client is %d \n", (*current_client).fd);
+                send_info((*current_client).fd, current_msg.msg_ptr);
+                current_client = (*current_client).next;
+            }
+            printf("flag is %d \n", current_msg.socket_flag);
             reset_flag();
-        }
-        else {
-            continue;
+            pthread_mutex_unlock(&fd_lock);
         }
     }
 }
@@ -119,31 +126,35 @@ void* read_handling(void* client_socket_ptr) {
     // creates string and sends message
     char buffer[BUFFER_SIZE]; 
     while(1) {
-    int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
-    // Case 1: Client disconnected or error
-    if (byte_count <= 0) {
-        printf("Client disconnected or error occurred.\n");
-        remove_fd(&client_fds, clientSocket);
-        print_fd_list(client_fds);
+        int byte_count = read_info(clientSocket, buffer, BUFFER_SIZE);
+        // Case 1: Client disconnected or error
+        if (byte_count <= 0) {
+            printf("Client disconnected or error occurred.\n");
+            remove_fd(&client_fds, clientSocket);
+            print_fd_list(client_fds);
 
-        close(clientSocket);
-        free(client_socket_ptr);
-        return NULL;    
-        // Stop this thread safely
-    }
-    // Case 2: Client typed "exit"
-    if (strcmp(buffer, "exit") == 0) {
-        printf("Client requested exit.\n");
-        remove_fd(&client_fds, clientSocket);
-        print_fd_list(client_fds);
-        close(clientSocket);
-        free(client_socket_ptr);
-        return NULL; // Graceful shutdown   
-    }
-    // Case 3: Normal message
-    log_message("client", buffer);
-    send_info(clientSocket, buffer);
-    // close the individual socket connection
+            close(clientSocket);
+            free(client_socket_ptr);
+            return NULL;    
+            // Stop this thread safely
+        }
+        // Case 2: Client typed "exit"
+        if (strcmp(buffer, "exit") == 0) {
+            printf("Client requested exit.\n");
+            remove_fd(&client_fds, clientSocket);
+            print_fd_list(client_fds);
+            close(clientSocket);
+            free(client_socket_ptr);
+            return NULL; // Graceful shutdown   
+        }
+        
+        if (current_msg.socket_flag == 0) {
+            reset_message(buffer);
+        }
+
+        // Case 3: Normal message
+        log_message("client", buffer);
+        // close the individual socket connection
     }
 }
 
