@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 1024 * 1024
 
 // --- Function Declarations ---
 
