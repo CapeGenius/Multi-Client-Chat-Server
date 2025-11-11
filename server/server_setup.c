@@ -10,7 +10,7 @@
 #include "server_setup.h"
 #include "logger.h"
 #include "fd_list.h" 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 1024 * 1024
 
 //declare new struct type for incoming messages
 typedef struct {
@@ -89,7 +89,6 @@ void accept_connections(int listener_socket) {
         pthread_create(&write_thread, NULL, (void*)write_handling, (void*)client_socket_ptr);
         pthread_detach(read_thread);
     }    
-
 }
 
 // thread to send message when the message is in the write phase
