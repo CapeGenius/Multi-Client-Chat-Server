@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L // Enable POSIX features for sigaction
+
 #include <sys/socket.h>   
 #include <netinet/in.h> // gives us definitions and type declarations that describe how internet networking sockets work 
 #include <arpa/inet.h>    
@@ -8,6 +10,10 @@
 #include <unistd.h>
 #include <time.h> 
 #include <signal.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <errno.h>
+
 
 /*fixes: we want client to work in a way --> when we type exit, it exits the client socket connection -- 
 and ensures other clients can still send --> Crtl + C should not exit for all connections 
@@ -22,6 +28,18 @@ void handle_sigint(int sig){
     printf("Caught Ctrl+C. Closing client connection.\n");
 }
 
+void install_sigint_handler() {
+    struct sigaction sa;               // full definition available here
+    sa.sa_handler = handle_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;                   // no SA_RESTART
+
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("sigaction failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
 /**
 Function to send messages to the server. This function...
     -Reads user input from stdin using getline(), dynamically resizing as needed.
@@ -30,65 +48,69 @@ Function to send messages to the server. This function...
     -Sends both the length header and the actual message over the TCP socket.
  */
 void* send_message(void* client_socket_ptr) {
-    // gives us the file descriptor of the client socket we want to use in order to communicate
+    install_sigint_handler();   // <-- install non-restarting signal handler
+
     int *sock_ptr = (int*)client_socket_ptr;
     int client_socket = *sock_ptr;
-    // initializing our message buffer to store the stdin input
     char *message = NULL;
-    // introduce to more variables that getline() needs
-    size_t len = 0; // tracks the allocated buffer size for getline()
-    ssize_t read; // will store the number of characters read (-1 EOF)
-    // prompt the user for a message
-    printf("Type your message (type 'exit' to quit, or press Ctrl+C): \n"); 
-    // while there is a non EOF (end of file) message typed into terminal
-    while (stop_client != 1 && (read = getline(&message, &len, stdin)) != -1 ) {
-        // remove trailing newline
+    size_t len = 0;
+    ssize_t read;
+
+    printf("Type your message (type 'exit' to quit, or press Ctrl+C): \n");
+
+    while (!stop_client) {
+        read = getline(&message, &len, stdin);
+
+        if (read == -1) {
+            // Check if we were interrupted by Ctrl+C
+            if (errno == EINTR) {
+                printf("\ngetline interrupted by signal. Exiting input loop.\n");
+                break;
+            }
+            // EOF or other error
+            break;
+        }
+
         if (read > 0 && message[read - 1] == '\n') {
             message[read - 1] = '\0';
             read--;
         }
-        // if our message is empty, wait for the next message
-        if (read == 0) {
-            continue;
-        }
-        // check if the user typed "exit"
+
+        if (read == 0) continue;
+
         if (strcmp(message, "exit") == 0) {
             printf("Exit command received. Closing client connection.\n");
             break;
-        }   
-        // check the max message size
+        }
+
         if (read > MAX_MESSAGE_SIZE) {
             printf("Message too long. Limit is 1MB.\n");
             continue;
         }
-        // send 4-byte length prefix to the server
+
         uint32_t msg_len = (uint32_t)read;
         uint32_t net_len = htonl(msg_len);
-        // send function to do that
+
         ssize_t sent_len = send(client_socket, &net_len, sizeof(net_len), 0);
-        // ensure that the amount of bytes sent to the server is as much as we determines to send
         if (sent_len != sizeof(net_len)) {
             perror("Error sending message length");
             break;
         }
-        // send the message to the server
+
         ssize_t sent = send(client_socket, message, read, 0);
         if (sent < 0) {
             perror("Error sending message");
             break;
         }
-        // Print out that the message sent successfully
+
         printf("Message sent!\n");
     }
-    // message is dynamically allocated using malloc underneath the hood of getline, so we must free it
+
     free(message);
-    // we close the client socket if our user pressed Ctrl+D
     shutdown(client_socket, SHUT_RDWR);
     close(client_socket);
-    // Either the user has ended the client communication with the server
-    // or send() failed
     printf("Disconnected from server or user exited input.\n");
-    // this function has a void* return type, and NULL is a void* under the hood
+
     return NULL;
 }
 
