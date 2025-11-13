@@ -16,20 +16,20 @@ int setup_listener(int port, int backlog);
 void accept_connections(int listener_socket);
 
 // Thread handlers for client connections
-void* read_handling(void* client_socket_ptr);
-void* write_handling();
+void *read_handling(void *client_socket_ptr);
+void *write_handling();
 
 // Mutex helpers for client count
 void increment_client_count(void);
 void decrement_client_count(void);
 
 // Message helpers
-void reset_message(char* buffer);
+void reset_message(char *buffer);
 void write_message(int client_socket);
 void reset_flag();
 
 // Helper functions for reading and writing
-int send_info(int socket, char* msg);
+int send_info(int socket, char *msg);
 int read_info(int socket, char *buf, int len);
 
 #endif // SERVER_SETUP_H
