@@ -1,9 +1,9 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <pthread.h>
 #include <stdio.h>
 #include <time.h>
-#include <pthread.h>
 
 // Initialize logger with file path
 int init_logger(const char *filename);
