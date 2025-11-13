@@ -4,8 +4,8 @@
 #include <stdlib.h>
 
 typedef struct fd_node {
-    int fd;
-    struct fd_node *next;
+  int fd;
+  struct fd_node *next;
 } fd_node_t;
 
 // Function declarations
