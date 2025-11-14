@@ -5,6 +5,7 @@ A lightweight multi-client chat system written in C.
 Multiple clients connect to a central server and exchange messages in real time.  
 Each client uses two pthreads (send + receive), and the server uses one thread per client.
 
+Presentation / Demo - https://www.youtube.com/watch?v=JGMMns0hPI8
 ---
 
 ## Features
