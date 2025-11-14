@@ -18,7 +18,7 @@ Each client uses two pthreads (send + receive), and the server uses one thread p
 
 ---
 
-## Build + Quickstart (copy & paste)
+## Build + Quickstart
 
 
 #### Git clone the repository
@@ -49,22 +49,23 @@ gcc -o server server.c logger.c server_setup.c fd_list.c
 ```
 
 #### Now, you can run your project:
-
+4. Run the router to choose either server or client!
 ```bash
-# 2. Build the project using router executable
+# use router executable to run proejct
 ./router
-
-# 3. Start the server 
+```
+4. Start the server
 After running ./router in terminal you will get
 
+```bash
 ' Do you want to run a server (1) or client (2):
 1) Server
 2) Client
 Enter choice: '
-
+```
 Enter 1. This will start a server listening on port 8080
 
-# 4. In another terminal, start a client
+5. In another terminal, start a client
 After running ./router in terminal you will get
 
 ' Do you want to run a server (1) or client (2):
@@ -90,3 +91,10 @@ This project was created by:
 - **Akshat Jain]**
 - **Rohan Bendapudi**
 
+### Sources - 
+We used the following sources to guide our learning for our project!
+
+Head First C Chapters 11, 12  
+Socket Programming in C - https://www.geeksforgeeks.org/c/socket-programming-cc/
+TCP Server Client Implementation - https://www.geeksforgeeks.org/c/tcp-server-client-implementation-in-c/
+How to write a multithreaded server in C (threads, sockets) - https://www.youtube.com/watch?v=Pg_4Jz8ZIH4
