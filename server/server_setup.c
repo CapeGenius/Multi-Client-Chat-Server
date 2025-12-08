@@ -92,7 +92,7 @@ void accept_connections(int listener_socket) {
     *client_socket_ptr = client_socket;
 
     pthread_t read_thread;
-
+    // launches independent reader thread for each client
     pthread_create(&read_thread, NULL, (void *)read_handling,
                    (void *)client_socket_ptr);
     pthread_detach(read_thread);
@@ -184,7 +184,7 @@ void reset_message(char *buffer) {
   pthread_mutex_lock(&client_lock);
   free(current_msg.msg_ptr);
   current_msg.msg_ptr = heap_copy;
-  current_msg.socket_flag = 1;
+  current_msg.socket_flag = 1; // tells write to send
   current_msg.client_count = 0;
   pthread_mutex_unlock(&client_lock);
 }
@@ -213,7 +213,7 @@ int send_info(int socket, char *msg) {
   int final_msg_len = snprintf(final_msg, sizeof(final_msg), "%s", msg);
 
   // ensures that the message is not empty / doesn't exist final message size
-  if (final_msg_len < 0 || final_msg_len >= sizeof(final_msg)) {
+  if (final_msg_len <= 0 || final_msg_len >= sizeof(final_msg)) {
     fprintf(stderr, "Error or truncation in snprintf.\n");
     return -1;
   }
