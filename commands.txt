@@ -1,2 +1,2 @@
-gcc -o server main.c server_setup.c client_helpers.c logger.c -lpthread
+gcc -Wall -Wextra -pedantic -o router router.c 
 telnet 127.0.0.1 8080
