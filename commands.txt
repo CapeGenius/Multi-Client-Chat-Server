@@ -1,0 +1,10 @@
+Inside build directory
+cmake ../CMakeLists.txt 
+cmake --build .
+
+To run server
+src/server_run
+
+To run Client 
+ip a or hostname -I
+src/client_run
