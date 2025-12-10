@@ -50,4 +50,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
 server_log.csv
+build/
