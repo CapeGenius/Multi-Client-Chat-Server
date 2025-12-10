@@ -10,8 +10,6 @@ typedef struct fd_node {
 
 // Function declarations
 fd_node_t *enqueue_fd(fd_node_t **head, int fd);
-int dequeue_fd(fd_node_t **head);
-fd_node_t *find_fd(fd_node_t *head, int fd);
 int remove_fd(fd_node_t **head, int fd);
 void print_fd_list(fd_node_t *head); // optional for debugging
 
