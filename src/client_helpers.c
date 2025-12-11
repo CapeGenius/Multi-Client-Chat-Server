@@ -1,5 +1,8 @@
+// I think Googles AI Overview helped me understand that I need this
+// That occured because of a Google Search, which maybe used an AI tool.
 #define _POSIX_C_SOURCE 200809L // Enable POSIX features for sigaction
 
+// documentation and chatGPT helped me find the libraries I had to include
 #include <sys/socket.h>   
 #include <netinet/in.h> // gives us definitions and type declarations that describe how internet networking sockets work 
 #include <arpa/inet.h>    
@@ -19,21 +22,24 @@
 and ensures other clients can still send --> Crtl + C should not exit for all connections 
 */ 
 
+// My code
 #define MAX_MESSAGE_SIZE (1024 * 1024) // define a max message size for our terminal input 1MB
 volatile sig_atomic_t stop_client = 0; // Global flag to stop threads when user presses Ctrl+C
 
+// I searched up how to handle sigint on Google and asked Rohan which is how I came to this
 void handle_sigint(int sig){
     (void)sig; // we void cast to prevent compiler warnings
     stop_client = 1; // set the stop flag to 1
     printf("Caught Ctrl+C. Closing client connection.\n");
 }
 
+// Rohan and I prompted chatGPT telling it how we had a blocking error from getline()
+// and how cntr+C was not working and then we got this code which fixed our issue.
 void install_sigint_handler() {
     struct sigaction sa;               // full definition available here
     sa.sa_handler = handle_sigint;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;                   // no SA_RESTART
-
     if (sigaction(SIGINT, &sa, NULL) == -1) {
         perror("sigaction failed");
         exit(EXIT_FAILURE);
@@ -49,20 +55,20 @@ Function to send messages to the server. This function...
  */
 
 // I used AI to write some of this function, I don't remember what exactly, but for sure the 
-// first line of the function.
+// first line of the function for sure.
 void* send_message(void* client_socket_ptr) {
     install_sigint_handler();   // <-- install non-restarting signal handler
-    int *sock_ptr = (int*)client_socket_ptr;
-    int client_socket = *sock_ptr;
-    char *message = NULL;
-    size_t len = 0;
-    ssize_t read;
-
+    int *sock_ptr = (int*)client_socket_ptr; // type cast client_socket_ptr
+    int client_socket = *sock_ptr; // dereference sock_ptr and read the integer stored there.
+    char *message = NULL; // initializing our message buffer to store the stdin input
+    size_t len = 0;  // tracks the allocated buffer size for getline()
+    ssize_t read; // will store the number of characters read (-1 EOF)
+    // prompts user for a message
     printf("Type your message (type 'exit' to quit, or press Ctrl+C): \n");
-
+    // while there is a non EOF (end of file) message typed into terminal
     while (!stop_client) {
+        // read stores the number of characters successfully read from stdin
         read = getline(&message, &len, stdin);
-
         if (read == -1) {
             // Check if we were interrupted by Ctrl+C
             if (errno == EINTR) {
@@ -72,47 +78,49 @@ void* send_message(void* client_socket_ptr) {
             // EOF or other error
             break;
         }
-
+        // remove the last char if we read something
         if (read > 0 && message[read - 1] == '\n') {
             message[read - 1] = '\0';
             read--;
         }
-
+        // skip any empty messages
         if (read == 0) continue;
-
         if (strcmp(message, "exit") == 0) {
             printf("Exit command received. Closing client connection.\n");
             break;
         }
-
+        // reject oversized messages
         if (read > MAX_MESSAGE_SIZE) {
             printf("Message too long. Limit is 1MB.\n");
             continue;
         }
-
+        // type cast read
         uint32_t msg_len = (uint32_t)read;
+        // make it a format that can go across the network
         uint32_t net_len = htonl(msg_len);
-
+        // send 4 byte prefix
         ssize_t sent_len = send(client_socket, &net_len, sizeof(net_len), 0);
+        // if the amount of bytes send != message length
         if (sent_len != sizeof(net_len)) {
             perror("Error sending message length");
             break;
         }
-
+        // sent message
         ssize_t sent = send(client_socket, message, read, 0);
         if (sent < 0) {
             perror("Error sending message");
             break;
         }
-
         printf("Message sent!\n");
     }
-
+    // message is dynamically allocated using malloc underneath the hood of getline, so we must free it
     free(message);
+    // call our shutdown function
     shutdown(client_socket, SHUT_RDWR);
+    // Close the client socket
     close(client_socket);
     printf("Disconnected from server or user exited input.\n");
-
+    // need to return NULL to keep the functions return type
     return NULL;
 }
 /**
@@ -121,6 +129,8 @@ Function to read messages from the server. This function...
     -Null-terminates it so printf() can treat it as a string.
     -Prints the received message to stdout
  */
+// AI helped me scope this function and explain to me what I needed, but I most all of this code
+// by myself and with help from Rohan. AI helped me figure out the network endian conversion.
 void* read_message(void* client_socket_ptr) {
     // extract the socket file descriptor
     int *sock_ptr = (int*)client_socket_ptr;
@@ -134,7 +144,6 @@ void* read_message(void* client_socket_ptr) {
     uint32_t net_len;
     // we use this to track how many bytes we've accumulated
     size_t total_received;
-
     printf("Read message started! \n");
     // loop to continuously receive messages
     while (stop_client != 1) {
@@ -195,35 +204,32 @@ void* read_message(void* client_socket_ptr) {
 }
 
 int connect_client(char* host, int* port){
+    // create the tcp socket, IPv4, TCP, default
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
-
+    // if there an issue with client connection
     if (client_socket < 0) {
         perror("Socket creation failed");
     }
-
     printf("Socket created \n");
-
+    // sockaddr_in is defined in <netinet/in.h> (I got this from AI)
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));  // important!...zeros out our struct
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(*port); // stores the port number in network byte order
-
     // Convert string IP to binary form
     if (inet_pton(AF_INET, host, &server_addr.sin_addr) <= 0) {
         perror("Address does not exist");
         close(client_socket);
         return -1;
     }
-
+    // IP address reached and we connect to client
     printf("IP Address reached. \n");
-
     if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("Connection failed");
         close(client_socket);
         return -1;
     }
-
+    // we connected
     printf("Connection successful! \n");
-
     return client_socket;
 }

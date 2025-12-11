@@ -3,7 +3,7 @@
 #include <signal.h> 
 #include <pthread.h>
 
-// I wrote this function, with help from a friend (Nividh)
+// I wrote this function, with help to scope it from chatGPT. Chat helped me figure out what was impotant for my
 int main() {
     signal(SIGINT, handle_sigint); // this is for handling OS signals (like when we get sigint from cntr+c)
     char ip[16]; // 16 bytes to store ip address
