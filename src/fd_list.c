@@ -4,8 +4,9 @@
 
 fd_node_t *enqueue_fd(fd_node_t **head, int file_descriptor) {
   fd_node_t *new_node = malloc(sizeof(fd_node_t));
-  if (!new_node)
+  if (!new_node){
     return NULL;
+  }
   new_node->file_descriptor = file_descriptor;
   new_node->next = NULL;
 

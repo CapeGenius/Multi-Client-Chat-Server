@@ -1,7 +1,10 @@
-#include "logger.h"
+#include <pthread.h>
 #include <time.h>
+#include <stdio.h>
 
-
+#include "logger.h"
+#define TIMEBUF_SIZE 64
+#define MSGBUF_SIZE 1024
 static FILE *log_file = NULL; // file on disk we read/
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER; // create our mutex and initialize its state
 
@@ -24,18 +27,17 @@ int init_logger(const char *filename) {
 }
 
 void log_message(const char *message, const char *client) {
-  if (!log_file)
+  if (!log_file){
     return; 
-
+  }
   pthread_mutex_lock(&log_lock);
-
   time_t now = time(NULL);
-  struct tm *t = localtime(&now); // localtime takes the timestamp stored at now, converts it to local time, and fills a static struct tm with the converted values. t points to that struct.
-  char timebuf[64];
-  strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", t); // fills timebuf with a formatted, human-readable timestamp.
+  struct tm *time_info = localtime(&now); // localtime takes the timestamp stored at now, converts it to local time, and fills a static struct tm with the converted values. t points to that struct.
+  char timebuf[TIMEBUF_SIZE];
+  strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", time_info); // fills timebuf with a formatted, human-readable timestamp.
 
   // Escape double quotes for CSV safety
-  char msgbuf[1024]; 
+  char msgbuf[MSGBUF_SIZE]; 
   snprintf(msgbuf, sizeof(msgbuf), "\"%s\"", message); // snprintf is a safe version of sprintf. It writes into msgbuf without overflowing.
 
   fprintf(log_file, "%s,%s,%s\n", timebuf, client, msgbuf);
@@ -47,7 +49,9 @@ void log_message(const char *message, const char *client) {
 void close_logger() {
   pthread_mutex_lock(&log_lock);
   if (log_file) {
-    fclose(log_file);
+    if (fclose(log_file)!= 0){
+      perror("Logger: failed to close file");
+    }
     log_file = NULL;
   }
   pthread_mutex_unlock(&log_lock);
