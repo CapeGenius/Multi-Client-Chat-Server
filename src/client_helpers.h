@@ -1,4 +1,3 @@
-#pragma once
 #ifndef CLIENT_HELPERS_H
 #define CLIENT_HELPERS_H
 
