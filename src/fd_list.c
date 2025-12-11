@@ -1,11 +1,12 @@
 #include "fd_list.h"
 #include <stdio.h>
+#include <stdlib.h>
 
-fd_node_t *enqueue_fd(fd_node_t **head, int fd) {
+fd_node_t *enqueue_fd(fd_node_t **head, int file_descriptor) {
   fd_node_t *new_node = malloc(sizeof(fd_node_t));
   if (!new_node)
     return NULL;
-  new_node->fd = fd;
+  new_node->file_descriptor = file_descriptor;
   new_node->next = NULL;
 
   if (*head == NULL) {
@@ -38,14 +39,17 @@ fd_node_t *enqueue_fd(fd_node_t **head, int fd) {
 //   return NULL;
 // }
 
-int remove_fd(fd_node_t **head, int fd) {
-  fd_node_t *curr = *head, *prev = NULL;
+int remove_fd(fd_node_t **head, int file_descriptor) {
+  fd_node_t *curr = *head;
+  fd_node_t *prev = NULL;
   while (curr) {
-    if (curr->fd == fd) {
-      if (prev)
+    if (curr->file_descriptor == file_descriptor) {
+      if (prev){
         prev->next = curr->next;
-      else
+      }
+      else {
         *head = curr->next;
+      }
       free(curr);
       return 1; // removed successfully
     }
@@ -58,7 +62,7 @@ int remove_fd(fd_node_t **head, int fd) {
 void print_fd_list(fd_node_t *head) {
   printf("FD List: ");
   while (head) {
-    printf("%d ", head->fd);
+    printf("%d ", head->file_descriptor);
     head = head->next;
   }
   printf("\n");
