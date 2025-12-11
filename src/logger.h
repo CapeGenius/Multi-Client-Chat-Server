@@ -3,7 +3,6 @@
 
 #include <pthread.h>
 #include <stdio.h>
-#include <time.h>
 
 // Initialize logger with file path
 int init_logger(const char *filename);

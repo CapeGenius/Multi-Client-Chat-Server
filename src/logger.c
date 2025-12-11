@@ -1,6 +1,6 @@
 #include "logger.h"
-#include <stdlib.h>
-#include <string.h>
+#include <time.h>
+
 
 static FILE *log_file = NULL; // file on disk we read/
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER; // create our mutex and initialize its state
@@ -23,9 +23,9 @@ int init_logger(const char *filename) {
   return 0;
 }
 
-void log_message(const char *client, const char *message) {
+void log_message(const char *message, const char *client) {
   if (!log_file)
-    return;
+    return; 
 
   pthread_mutex_lock(&log_lock);
 
