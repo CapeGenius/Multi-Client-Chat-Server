@@ -109,8 +109,8 @@ void *write_handling() {
       fd_node_t *current_client = client_fds;
       while (current_client != NULL) {
         print_fd_list(client_fds);
-        printf("current client is %d \n", (*current_client).fd);
-        send_info((*current_client).fd, current_msg.msg_ptr);
+        printf("current client is %d \n", (*current_client).file_descriptor);
+        send_info((*current_client).file_descriptor, current_msg.msg_ptr);
         current_client = (*current_client).next;
       }
       printf("flag is %d \n", current_msg.socket_flag);
