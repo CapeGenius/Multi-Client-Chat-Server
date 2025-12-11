@@ -3,7 +3,8 @@
 #include <signal.h> 
 #include <pthread.h>
 
-// I wrote this function, with help to scope it from chatGPT. Chat helped me figure out what was impotant for my
+// I wrote this function, with help to scope it from chatGPT. Chat helped me figure out what was impotant for how 
+// to scope it. I also asked a friend while I was calling him how to approach it and we conversed about it verbally.
 int main() {
     signal(SIGINT, handle_sigint); // this is for handling OS signals (like when we get sigint from cntr+c)
     char ip[16]; // 16 bytes to store ip address
