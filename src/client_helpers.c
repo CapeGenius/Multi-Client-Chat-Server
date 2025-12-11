@@ -3,13 +3,13 @@
 #include <sys/socket.h>   
 #include <netinet/in.h> // gives us definitions and type declarations that describe how internet networking sockets work 
 #include <arpa/inet.h>    
-#include <pthread.h>      
+#include <pthread.h>   
+#include <signal.h>   
 #include <stdio.h>        
 #include <stdlib.h>       
 #include <string.h>       
 #include <unistd.h>
 #include <time.h> 
-#include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -47,9 +47,11 @@ Function to send messages to the server. This function...
     -Prefixes the message with a 4-byte length header in network byte order.
     -Sends both the length header and the actual message over the TCP socket.
  */
+
+// I used AI to write some of this function, I don't remember what exactly, but for sure the 
+// first line of the function.
 void* send_message(void* client_socket_ptr) {
     install_sigint_handler();   // <-- install non-restarting signal handler
-
     int *sock_ptr = (int*)client_socket_ptr;
     int client_socket = *sock_ptr;
     char *message = NULL;
@@ -113,7 +115,6 @@ void* send_message(void* client_socket_ptr) {
 
     return NULL;
 }
-
 /**
 Function to read messages from the server. This function...
     -Reads from the kernel’s TCP buffer into our own dynamically allocated buffer.
