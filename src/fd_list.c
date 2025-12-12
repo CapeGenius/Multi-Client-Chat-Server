@@ -22,25 +22,6 @@ fd_node_t *enqueue_fd(fd_node_t **head, int file_descriptor) {
   return new_node;
 }
 
-// int dequeue_fd(fd_node_t **head) {
-//   if (*head == NULL)
-//     return -1;
-//   fd_node_t *temp = *head;
-//   int fd = temp->fd;
-//   *head = temp->next;
-//   free(temp);
-//   return fd;
-// }
-
-// fd_node_t *find_fd(fd_node_t *head, int fd) {
-//   while (head) {
-//     if (head->fd == fd)
-//       return head;
-//     head = head->next;
-//   }
-//   return NULL;
-// }
-
 int remove_fd(fd_node_t **head, int file_descriptor) {
   fd_node_t *curr = *head;
   fd_node_t *prev = NULL;
