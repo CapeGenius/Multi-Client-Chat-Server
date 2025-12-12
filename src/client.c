@@ -1,16 +1,18 @@
 #include "client_helpers.h"
-#include <stdio.h>
 #include <signal.h> 
 #include <pthread.h>
+#include <stdio.h>
+
+#define IP_BYTE 16
 
 // I wrote this function, with help to scope it from chatGPT. Chat helped me figure out what was impotant for how 
 // to scope it. I also asked a friend while I was calling him how to approach it and we conversed about it verbally.
 int main() {
     signal(SIGINT, handle_sigint); // this is for handling OS signals (like when we get sigint from cntr+c)
-    char ip[16]; // 16 bytes to store ip address
-    prompt_ip(ip, sizeof(ip)); // puts our ip address in our ip buffer
+    char ip_address[IP_BYTE]; // 16 bytes to store ip address
+    prompt_ip(ip_address, sizeof(ip_address)); // puts our ip address in our ip buffer
     int port = prompt_port(); // 
-    int client_socket = connect_client(ip, &port); // connect the client socket
+    int client_socket = connect_client(ip_address, &port); // connect the client socket
     pthread_t receive_thread; // create a place to store my first thread descriptor
     pthread_t send_thread; // create a place to store my second thread descriptor
     pthread_create(&receive_thread, NULL, (void*)read_message, (void*) &client_socket); // runs read message, and uses client_socket for communication 

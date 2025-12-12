@@ -14,8 +14,9 @@ fd_node_t *enqueue_fd(fd_node_t **head, int file_descriptor) {
     *head = new_node;
   } else {
     fd_node_t *curr = *head;
-    while (curr->next)
+    while (curr->next) {
       curr = curr->next;
+    }
     curr->next = new_node;
   }
   return new_node;
