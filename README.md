@@ -89,7 +89,7 @@ Finally, enter in the associated port.
 ## Creators
 This project was created by:
 - **Ahan Trivedi**
-- **Akshat Jain]**
+- **Akshat Jain**
 - **Rohan Bendapudi**
 
 ### Sources - 
